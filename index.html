@@ -1,23 +1,68 @@
 <!DOCTYPE html>
 <html>
  <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0,
-    maximum-scale=2.0, user-scalable=yes" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"
+  />
   <style type="text/css">
-body {
-    text-align: center;
+#ui {
+    margin: auto;
+    font-size: 20pt;
+}
+#list {
+    margin-top: 10%;
+    width: 100%;
+    -webkit-appearance: none;
+    font-size: inherit;
+}
+.buttontable {
+}
+.buttonrow {
+    margin: 1em 0;
+}
+button {
+    padding: 1em 0;
+    border: 0;
+    -webkit-appearance: none;
+    font-size: inherit;
+    color: white;
+    background-color: green;
+}
+.left {
+    width: 31%;
+    left-margin: 0;
+}
+.middle {
+    width: 32%;
+    margin: auto;
+}
+.right {
+    width: 31%;
+    right-margin: 0;
 }
   </style>
  </head>
  <body>
-  <div>
-   <select id="list">
-   </select>
-  </div>
-  <div>
-   <button id="pauseorresume">P/R</button>
-  </div>
-  <div id="error">
+  <div id="ui">
+   <div>
+    <select id="list">
+    </select>
+   </div>
+   <div class="buttontable">
+   <div class="buttonrow">
+    <button id="seekminus30" class="left">-30</button>
+    <button id="pauseorresume" class="middle">P/R</button>
+    <button id="seekplus30" class="right">+30</button>
+   </div>
+   <div class="buttonrow">
+    <button id="play" class="left">Play</button>
+    <button id="reload" class="middle">Reload</button>
+    <button id="stop" class="right">Stop</button>
+   </div>
+   </div>
+   <div id="error">
+   </div>
   </div>
   <script type="text/javascript">
 (function () {
@@ -25,7 +70,6 @@ body {
 var qs = function (q) {return document.querySelector(q);},
     request,
     populateList,
-    playing = false,
     dummy;
 
 function request(op, args) {
@@ -56,14 +100,24 @@ populateList = function (listElement) {
 };
 
 populateList(qs('#list'));
+qs('#seekminus30').addEventListener('click', function () {
+    request('/control', {'command': 'seekMinus30'});
+});
 qs('#pauseorresume').addEventListener('click', function () {
+    request('/control', {'command': 'pauseOrResume'});
+});
+qs('#seekplus30').addEventListener('click', function () {
+    request('/control', {'command': 'seekPlus30'});
+});
+qs('#play').addEventListener('click', function () {
     var list = qs('#list');
-    if (playing) {
-        request('/control', {'command': 'pauseOrResume'});
-        return;
-    }
     request('/play', {'file': list.options[list.selectedIndex].textContent});
-    playing = true;
+});
+qs('#reload').addEventListener('click', function () {
+    populateList(qs('#list'));
+});
+qs('#stop').addEventListener('click', function () {
+    request('/control', {'command': 'exitOMXPlayer'});
 });
 
 }());
