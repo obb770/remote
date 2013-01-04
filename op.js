@@ -4,7 +4,7 @@ var http = require('http'),
     util = require('util'),
     fs = require('fs'),
     path = require('path'),
-    port = 8124,
+    port = (process.argv.length > 2 && parseInt(process.argv[2])) || 8124,
     mediaDir = process.env['MEDIA_DIR'] || 'Media',
     mediaPlayer = process.env['MEDIA_PLAYER'] || null,
     media_pattern = /\.(mp4|avi)$/,
@@ -20,16 +20,11 @@ var http = require('http'),
     dummy;
 
 search = function (base, subPath, filter) {
-    var result = [],
-        objs,
-        obj,
-        stats,
-        files,
-        i,
-        j;
-    objs = fs.readdirSync(path.join(base, subPath));
-    for (i = 0; i < objs.length; i++) {
-        obj = path.join(subPath, objs[i]);
+    var result = [];
+    fs.readdirSync(path.join(base, subPath)).forEach(function (obj) {
+        var stats,
+            files;
+        obj = path.join(subPath, obj);
         stats = fs.statSync(path.join(base, obj));
         if (stats.isFile()) {
             if (filter(obj)) {
@@ -40,11 +35,15 @@ search = function (base, subPath, filter) {
             files = search(base, obj, filter);
             result.push.apply(result, files);
         }
-    }
+    });
     return result;
 };
 
 respond = function (response, code, type, body) {
+    if (!response) {
+        console.log('null response');
+        return;
+    }
     if (response.responded) {
         console.log('Already responded');
         return;
@@ -199,4 +198,9 @@ http.createServer(function (request, response) {
 }).listen(port);
 
 console.log('Server running at http://127.0.0.1:%d/', port);
+process.stdin.resume()
+process.stdin.on('data', function (data) {
+    console.log('data');
+    handlers['/exit'](null, {});
+});
 
