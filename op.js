@@ -87,6 +87,15 @@ handlers = {
         });
     },
 
+    '/svg': function (response, query) {
+        fs.readFile(query.name + '.svg', function (err, data) {
+            if (err) {
+                throw err;
+            }
+            respond(response, 200, 'image/svg+xml', data);
+        });
+    },
+
     '/exit': function (response, query) {
         respond(response, 200, 'text/plain', 'Bye, bye...');
         stop(function() {
