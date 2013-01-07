@@ -7,13 +7,17 @@
   />
   <style type="text/css">
 #ui {
-    margin: auto;
-    font-size: 20pt;
+    margin-top: 40px;
+    font-size: 166%;
+    font-family: sans-serif;
 }
 #list {
-    margin-top: 10%;
-    width: 100%;
+    width: 99%;
     -webkit-appearance: none;
+    font-size: inherit;
+}
+#selected {
+    margin-top: 1em;
     font-size: inherit;
 }
 .buttontable {
@@ -21,44 +25,51 @@
 .buttonrow {
     margin: 1em 0;
 }
-button {
+.button {
     padding: 1em 0;
-    border: 0;
     -webkit-appearance: none;
-    font-size: inherit;
-    color: white;
+    -webkit-border-radius: 10px;
     background-color: green;
 }
 .left {
     width: 31%;
-    left-margin: 0;
 }
 .middle {
     width: 32%;
-    margin: auto;
 }
 .right {
     width: 31%;
-    right-margin: 0;
+}
+#error {
+    font-family: monospace;
+    font-size: .5em;
 }
   </style>
  </head>
  <body>
   <div id="ui">
-   <div>
-    <select id="list">
-    </select>
-   </div>
    <div class="buttontable">
    <div class="buttonrow">
-    <button id="seekminus30" class="left">-30</button>
-    <button id="pauseorresume" class="middle">P/R</button>
-    <button id="seekplus30" class="right">+30</button>
+    <button id="seekminus30" class="button left"><img
+      src="/svg?name=media-seek-backward"></button>
+    <button id="pauseorresume" class="button middle"><img
+      src="/svg?name=media-playback-pause"></button>
+    <button id="seekplus30" class="button right"><img
+      src="/svg?name=media-seek-forward"></button>
    </div>
    <div class="buttonrow">
-    <button id="play" class="left">Play</button>
-    <button id="reload" class="middle">Reload</button>
-    <button id="stop" class="right">Stop</button>
+    <button id="play" class="button left"><img
+      src="/svg?name=media-playback-start"></button>
+    <button id="reload" class="button middle"><img
+      src="/svg?name=view-refresh"></button>
+    <button id="stop" class="button right"><img
+      src="/svg?name=media-playback-stop"></button>
+   </div>
+   <div>
+    <select id="list" class="utton">
+    </select>
+   </div>
+   <div id="selected">
    </div>
    </div>
    <div id="error">
@@ -70,6 +81,7 @@ button {
 var qs = function (q) {return document.querySelector(q);},
     request,
     populateList,
+    file = null,
     dummy;
 
 function request(op, args) {
@@ -96,10 +108,20 @@ function request(op, args) {
 populateList = function (listElement) {
     var list = request('/list', {});
     listElement.innerHTML =
+        '<option>' + 'Click to select media...' + '</option>' + 
         '<option>' + list.join('</option><option>') + '</option>';
 };
 
 populateList(qs('#list'));
+qs('#list').addEventListener('change', function (e) {
+    var list = qs('#list');
+    file = list.options[list.selectedIndex].textContent;
+    qs('#selected').innerHTML = file.replace(/\./g, ' ');
+    setTimeout(function () {
+        qs('#list').selectedIndex = 0;
+        qs('#list').value = list.options[list.selectedIndex].textContent;
+    }, 0);
+});
 qs('#seekminus30').addEventListener('click', function () {
     request('/control', {'command': 'seekMinus30'});
 });
@@ -111,7 +133,7 @@ qs('#seekplus30').addEventListener('click', function () {
 });
 qs('#play').addEventListener('click', function () {
     var list = qs('#list');
-    request('/play', {'file': list.options[list.selectedIndex].textContent});
+    request('/play', {'file': file});
 });
 qs('#reload').addEventListener('click', function () {
     populateList(qs('#list'));
