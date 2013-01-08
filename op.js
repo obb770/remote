@@ -71,7 +71,7 @@ commands = {
     'pauseOrResume': 'p',
     'decreaseVolume': '-',
     'increaseVolume': '+',
-    'seekMinus30': '[D]',
+    'seekMinus30': '[D',
     'seekPlus30': '[C',
     'seekMinus600': '[B',
     'seekPlus600': '[A',
