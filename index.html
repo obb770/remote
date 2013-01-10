@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style"
     content="black-translucent" />
   <link rel="apple-touch-icon-precomposed" href="/png?name=touch-icon" />
+  <link rel="shortcut icon" href="/png?name=touch-icon" />
   <style type="text/css">
 #ui {
     margin-top: 40px;
@@ -143,6 +144,11 @@ qs('#reload').addEventListener('click', function () {
 });
 qs('#stop').addEventListener('click', function () {
     request('/control', {'command': 'exitOMXPlayer'});
+});
+
+qs('#ui').style.visibility = 'hidden';
+window.addEventListener('load', function() {
+    qs('#ui').style.visibility = 'visible';
 });
 
 }());
