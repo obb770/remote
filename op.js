@@ -61,7 +61,7 @@ respondJSON = function (response, obj) {
 sendFile = function (response, name, type) {
     fs.readFile(name, function (err, data) {
         if (err) {
-            throw err;
+            console.log(err.stack);
         }
         respond(response, 200, type, data);
     });
