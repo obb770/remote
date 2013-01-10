@@ -11,6 +11,7 @@ var http = require('http'),
     search,
     respond,
     respondJSON,
+    sendFile,
     commands,
     handlers,
     player = null,
@@ -57,6 +58,15 @@ respondJSON = function (response, obj) {
     respond(response, 200, 'application/json', util.format('%j', obj));
 };
 
+sendFile = function (response, name, type) {
+    fs.readFile(name, function (err, data) {
+        if (err) {
+            throw err;
+        }
+        respond(response, 200, type, data);
+    });
+};
+
 commands = {
     'increaseSpeed': '1',
     'decreaseSpeed': '2',
@@ -79,21 +89,15 @@ commands = {
 
 handlers = {
     '/': function (response, query) {
-        fs.readFile('index.html', function (err, data) {
-            if (err) {
-                throw err;
-            }
-            respond(response, 200, 'text/html', data);
-        });
+        sendFile(response, 'index.html', 'text/html');
     },
 
     '/svg': function (response, query) {
-        fs.readFile(query.name + '.svg', function (err, data) {
-            if (err) {
-                throw err;
-            }
-            respond(response, 200, 'image/svg+xml', data);
-        });
+        sendFile(response, query.name + '.svg', 'image/svg+xml');
+    },
+
+    '/png': function (response, query) {
+        sendFile(response, query.name + '.png', 'image/png');
     },
 
     '/exit': function (response, query) {
@@ -188,6 +192,7 @@ play = function (response, query) {
 
 http.createServer(function (request, response) {
     var req = require('url').parse(request.url, true);
+    console.log(request.url);
     doLater = function (delay, callback) {
         setTimeout(function () {
             try {
