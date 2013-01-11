@@ -57,7 +57,10 @@ respond = function (response, code, type, body) {
         log('Already responded');
         return;
     }
-    log(code + ' ' + type);
+    log(response.url + ' ' + code + ' ' + type);
+    if (code != 200) {
+        log(body);
+    }
     response.responded = true;
     response.writeHead(code, {'Content-Type': type});
     response.end(body);
@@ -106,6 +109,10 @@ commands = {
 handlers = {
     '/': function (response, query) {
         sendFile(response, 'index.html', 'text/html');
+    },
+
+    '/html': function (response, query) {
+        sendFile(response, query.name + '.html', 'text/html');
     },
 
     '/svg': function (response, query) {
@@ -212,7 +219,7 @@ play = function (response, query) {
 
 http.createServer(function (request, response) {
     var req = require('url').parse(request.url, true);
-    log(request.url);
+    response.url = request.url;
     doLater = function (delay, callback) {
         setTimeout(function () {
             try {
