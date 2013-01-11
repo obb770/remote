@@ -8,6 +8,8 @@ var http = require('http'),
     mediaDir = process.env['MEDIA_DIR'] || 'Media',
     mediaPlayer = process.env['MEDIA_PLAYER'] || null,
     media_pattern = /\.(mp4|avi)$/,
+    log,
+    buffer = '',
     search,
     respond,
     respondJSON,
@@ -19,6 +21,12 @@ var http = require('http'),
     stop,
     doLater = null,
     dummy;
+
+log = function () {
+    var str = util.format.apply(util, arguments);
+    console.log('%s', str);
+    buffer += '\n' + str;
+}
 
 search = function (base, subPath, filter) {
     var result = [];
@@ -42,14 +50,14 @@ search = function (base, subPath, filter) {
 
 respond = function (response, code, type, body) {
     if (!response) {
-        console.log('null response');
+        log('null response');
         return;
     }
     if (response.responded) {
-        console.log('Already responded');
+        log('Already responded');
         return;
     }
-    console.log(code + ' ' + type);
+    log(code + ' ' + type);
     response.responded = true;
     response.writeHead(code, {'Content-Type': type});
     response.end(body);
@@ -63,12 +71,13 @@ sendFile = function (response, name, type) {
     if (/\.\.(\/|$)/.test(name)) {
         throw new Error("Bad file");
     }
+    name = path.join('.', name);
     if (!path.existsSync(name) || !fs.statSync(name).isFile()) {
         throw new Error("File not found");
     }
     fs.readFile(name, function (err, data) {
         if (err) {
-            console.log(err.stack);
+            log(err.stack);
         }
         respond(response, 200, type, data);
     });
@@ -111,10 +120,14 @@ handlers = {
         sendFile(response, query.name + '.png', 'image/png');
     },
 
+    '/log': function (response, query) {
+        respond(response, 200, 'text/plain', buffer);
+    },
+
     '/exit': function (response, query) {
         respond(response, 200, 'text/plain', 'Bye, bye...');
         stop(function() {
-            console.log("Exit...");
+            log("Exit...");
             process.exit();
         });
     },
@@ -156,12 +169,12 @@ stop = function (thenDo) {
         return;
     }
     player.on('exit', function () {
-        console.log('Stopped!');
+        log('Stopped!');
         doLater(0, function () {
             thenDo();
         });
     });
-    console.log('Stopping...');
+    log('Stopping...');
     player.stdin.write('q');
 };
 
@@ -178,9 +191,9 @@ play = function (response, query) {
     if (!path.existsSync(file) || !fs.statSync(file).isFile()) {
         throw new Error("File not found");
     }
-    console.log('Playing...');
+    log('Playing...');
     if (mediaPlayer) {
-        console.log('Using: %s', mediaPlayer);
+        log('Using: %s', mediaPlayer);
         player = require('child_process').spawn(mediaPlayer, [file]);
     }
     else {
@@ -191,11 +204,11 @@ play = function (response, query) {
     player.stdout.on('data', function(data) {
         data = data.trim();
         if (data) {
-            console.log('player: ' + data);
+            log('player: ' + data);
         }
     });
     player.on('exit', function () {
-        console.log('Played!');
+        log('Played!');
         player = null;
     });
     respondJSON(response, null);
@@ -203,7 +216,7 @@ play = function (response, query) {
 
 http.createServer(function (request, response) {
     var req = require('url').parse(request.url, true);
-    console.log(request.url);
+    log(request.url);
     doLater = function (delay, callback) {
         setTimeout(function () {
             try {
@@ -222,10 +235,10 @@ http.createServer(function (request, response) {
     });
 }).listen(port);
 
-console.log('Server running at http://127.0.0.1:%d/', port);
+log('Server running at http://127.0.0.1:%d/', port);
 process.stdin.resume()
 process.stdin.on('data', function (data) {
-    console.log('data');
+    log('data');
     handlers['/exit'](null, {});
 });
 
