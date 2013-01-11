@@ -9,10 +9,16 @@
   <link rel="apple-touch-icon-precomposed" href="/png?name=touch-icon" />
   <link rel="shortcut icon" href="/png?name=touch-icon" />
   <style type="text/css">
-#ui {
-    margin-top: 40px;
+body {
     font-size: 166%;
     font-family: sans-serif;
+}
+#startup {
+    margin-top: 80px;
+    color: rgba(128, 128, 128, 0.5);
+}
+#ui {
+    margin-top: 40px;
 }
 #list {
     width: 99%;
@@ -21,7 +27,7 @@
 }
 #selected {
     margin-top: 1em;
-    font-size: inherit;
+    font-size: 80%;
 }
 .buttontable {
 }
@@ -43,7 +49,7 @@
 .right {
     width: 31%;
 }
-#error {
+#log {
     font-family: monospace;
     font-size: .5em;
 }
@@ -51,6 +57,9 @@
   <title>OMXRemote</title>
  </head>
  <body>
+  <div id="startup">
+  <h1>Loading...</h1>
+  </div>
   <div id="ui">
    <div class="buttontable">
    <div class="buttonrow">
@@ -76,17 +85,27 @@
    <div id="selected">
    </div>
    </div>
-   <div id="error">
+   <div id="log">
    </div>
   </div>
   <script type="text/javascript">
 (function () {
 'use strict';
 var qs = function (q) {return document.querySelector(q);},
+    qsa = function (q) {
+        return Array.prototype.slice.call(document.querySelectorAll(q));
+    },
+    log,
     request,
     populateList,
     file = null,
+    buttons,
     dummy;
+
+function log(m) {
+    qs('#log').innerHTML = '<hr>' + m + qs('#log').innerHTML;
+    document.body.scrollTop = document.documentElement.scrollTop = 0;
+};
 
 function request(op, args) {
     var xhr = new XMLHttpRequest(),
@@ -99,11 +118,10 @@ function request(op, args) {
         }
     }
     url = url + '?' + params.join('&');
-    qs('#error').innerHTML = '';
     xhr.open('GET', url, false);
     xhr.send();
     if (xhr.status != 200) {
-        qs('#error').innerHTML = xhr.responseText;
+        log(xhr.responseText);
         return null;
     }
     return JSON.parse(xhr.responseText);
@@ -117,6 +135,7 @@ populateList = function (listElement) {
 };
 
 populateList(qs('#list'));
+
 qs('#list').addEventListener('change', function (e) {
     var list = qs('#list');
     file = list.options[list.selectedIndex].textContent;
@@ -124,30 +143,60 @@ qs('#list').addEventListener('change', function (e) {
     setTimeout(function () {
         qs('#list').selectedIndex = 0;
         qs('#list').value = list.options[list.selectedIndex].textContent;
+        document.body.scrollTop = document.documentElement.scrollTop = 0;
     }, 0);
 });
-qs('#seekminus30').addEventListener('click', function () {
-    request('/control', {'command': 'seekMinus30'});
-});
-qs('#pauseorresume').addEventListener('click', function () {
-    request('/control', {'command': 'pauseOrResume'});
-});
-qs('#seekplus30').addEventListener('click', function () {
-    request('/control', {'command': 'seekPlus30'});
-});
-qs('#play').addEventListener('click', function () {
-    var list = qs('#list');
-    request('/play', {'file': file});
-});
-qs('#reload').addEventListener('click', function () {
-    populateList(qs('#list'));
-});
-qs('#stop').addEventListener('click', function () {
-    request('/control', {'command': 'exitOMXPlayer'});
+
+buttons = {
+    '#seekminus30': function () {
+        request('/control', {'command': 'seekMinus30'});
+    },
+    '#pauseorresume': function () {
+        request('/control', {'command': 'pauseOrResume'});
+    },
+    '#seekplus30': function () {
+        request('/control', {'command': 'seekPlus30'});
+    },
+    '#play': function () {
+        var list = qs('#list');
+        request('/play', {'file': file});
+    },
+    '#reload': function () {
+        populateList(qs('#list'));
+    },
+    '#stop': function () {
+        request('/control', {'command': 'exitOMXPlayer'});
+    },
+};
+
+Object.keys(buttons).forEach(function (id) {
+    var down,
+        up;
+    down = function () {
+        this.style['background-color'] = 'darkgreen';
+    };
+    up = function () {
+        this.style['background-color'] = 'green';
+        buttons[id]();
+    };
+    qs(id).addEventListener('mousedown', down);
+    qs(id).addEventListener('mouseup', up);
+    qs(id).addEventListener('touchstart', function (e) {
+        e.preventDefault();
+        down.call(this, e.changedTouches[0]);
+    });
+    qs(id).addEventListener('touchmove', function (e) {
+        e.preventDefault();
+    });
+    qs(id).addEventListener('touchend', function (e) {
+        e.preventDefault();
+        up.call(this, e.changedTouches[0]);
+    });
 });
 
 qs('#ui').style.visibility = 'hidden';
 window.addEventListener('load', function() {
+    qs('#startup').style.display = 'none';
     qs('#ui').style.visibility = 'visible';
 });
 
