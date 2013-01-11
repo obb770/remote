@@ -108,10 +108,6 @@ handlers = {
         sendFile(response, 'index.html', 'text/html');
     },
 
-    '/favicon.ico': function (response, query) {
-        sendFile(response, 'touch-icon.png', 'image/png');
-    },
-
     '/svg': function (response, query) {
         sendFile(response, query.name + '.svg', 'image/svg+xml');
     },
