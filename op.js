@@ -49,6 +49,7 @@ respond = function (response, code, type, body) {
         console.log('Already responded');
         return;
     }
+    console.log(code + ' ' + type);
     response.responded = true;
     response.writeHead(code, {'Content-Type': type});
     response.end(body);
@@ -59,6 +60,12 @@ respondJSON = function (response, obj) {
 };
 
 sendFile = function (response, name, type) {
+    if (/\.\.(\/|$)/.test(name)) {
+        throw new Error("Bad file");
+    }
+    if (!path.existsSync(name) || !fs.statSync(name).isFile()) {
+        throw new Error("File not found");
+    }
     fs.readFile(name, function (err, data) {
         if (err) {
             console.log(err.stack);
@@ -90,6 +97,10 @@ commands = {
 handlers = {
     '/': function (response, query) {
         sendFile(response, 'index.html', 'text/html');
+    },
+
+    '/favicon.ico': function (response, query) {
+        sendFile(response, 'touch-icon.png', 'image/png');
     },
 
     '/svg': function (response, query) {
