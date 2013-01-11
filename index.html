@@ -162,6 +162,7 @@ buttons = {
         request('/play', {'file': file});
     },
     '#reload': function () {
+        qs('#log').innerHTML = '';
         populateList(qs('#list'));
     },
     '#stop': function () {
