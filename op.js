@@ -5,14 +5,16 @@ var http = require('http'),
     fs = require('fs'),
     path = require('path'),
     port = (process.argv.length > 2 && parseInt(process.argv[2])) || 8124,
-    mediaDir = process.env['MEDIA_DIR'] || 'Media',
+    wwwRoot = 'www',
+    mediaDir = 'Media',
     mediaPlayer = process.env['MEDIA_PLAYER'] || null,
-    media_pattern = /\.(mp4|avi)$/,
+    mediaPattern = /\.(mp4|avi)$/,
     log,
     buffer = '',
     search,
     respond,
     respondJSON,
+    types,
     sendFile,
     commands,
     handlers,
@@ -70,11 +72,33 @@ respondJSON = function (response, obj) {
     respond(response, 200, 'application/json', util.format('%j', obj));
 };
 
-sendFile = function (response, name, type) {
-    if (/\.\.(\/|$)/.test(name)) {
+types = {
+    'manifest': 'text/cache-manifest',
+    'html': 'text/html',
+    'svg': 'image/svg+xml',
+    'png': 'image/png',
+    '': 'text/plain'
+};
+
+sendFile = function (response, name) {
+    var i,
+        type;
+    if (/\.\.(\/|$)/.test(name) || name[0] !== '/') {
         throw new Error("Bad file");
     }
-    name = path.join('.', name);
+    if (name[name.length - 1] === '/') {
+        name += 'index.html';
+    }
+    name = name.substr(1);
+    i = name.lastIndexOf('.');
+    if (i < 0) {
+        i = name.lastIndexOf('/');
+    }
+    type = name.substr(i + 1);
+    if (!types.hasOwnProperty(type)) {
+        throw new Error("Bad file type");
+    }
+    name = path.join(wwwRoot, name);
     if (!path.existsSync(name) || !fs.statSync(name).isFile()) {
         throw new Error("File not found");
     }
@@ -82,7 +106,7 @@ sendFile = function (response, name, type) {
         if (err) {
             log(err.stack);
         }
-        respond(response, 200, type, data);
+        respond(response, 200, types[type], data);
     });
 };
 
@@ -107,22 +131,6 @@ commands = {
 };
 
 handlers = {
-    '/': function (response, query) {
-        sendFile(response, 'index.html', 'text/html');
-    },
-
-    '/html': function (response, query) {
-        sendFile(response, query.name + '.html', 'text/html');
-    },
-
-    '/svg': function (response, query) {
-        sendFile(response, query.name + '.svg', 'image/svg+xml');
-    },
-
-    '/png': function (response, query) {
-        sendFile(response, query.name + '.png', 'image/png');
-    },
-
     '/log': function (response, query) {
         respond(response, 200, 'text/plain', buffer);
     },
@@ -138,7 +146,7 @@ handlers = {
     '/list': function (response, query) {
         var files = [];
         files.push.apply(files, search(mediaDir, '', function (file) {
-            return media_pattern.test(file);
+            return mediaPattern.test(file);
         }));
         respondJSON(response, files);
     },
@@ -234,6 +242,10 @@ http.createServer(function (request, response) {
 
     };
     doLater(0, function () {
+        if (!handlers.hasOwnProperty(req.pathname)) {
+            sendFile(response, req.pathname);
+            return;
+        }
         handlers[req.pathname](response, req.query);
     });
 }).listen(port);
