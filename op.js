@@ -59,7 +59,7 @@ respond = function (response, code, type, body) {
         log('Already responded');
         return;
     }
-    log(response.url + ' ' + code + ' ' + type);
+    log(response.remoteAddress + ' ' + response.url + ' ' + code + ' ' + type);
     if (code != 200) {
         log(body);
     }
@@ -100,6 +100,13 @@ sendFile = function (response, name) {
     }
     name = path.join(wwwRoot, name);
     if (!path.existsSync(name) || !fs.statSync(name).isFile()) {
+        if (type === 'manifest') {
+            i = name.lastIndexOf('/');
+            respond(response, 200, types[type], util.format(
+                    'CACHE MANIFEST\n# %s\n', 
+                    fs.statSync(name.substr(0, i + 1) + 'index.html').mtime));
+            return;
+        }
         throw new Error("File not found");
     }
     fs.readFile(name, function (err, data) {
@@ -228,6 +235,7 @@ play = function (response, query) {
 http.createServer(function (request, response) {
     var req = require('url').parse(request.url, true);
     response.url = request.url;
+    response.remoteAddress = request.connection.remoteAddress;
     doLater = function (delay, callback) {
         setTimeout(function () {
             try {
@@ -250,7 +258,7 @@ http.createServer(function (request, response) {
     });
 }).listen(port);
 
-log('Server running at http://127.0.0.1:%d/', port);
+log('Server running at port %d', port);
 process.stdin.resume()
 process.stdin.on('data', function (data) {
     log('data');
