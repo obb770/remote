@@ -160,7 +160,10 @@ handlers = {
 
     '/play': function (response, query) {
         stop(function () {
-            play(response, query);
+            require('child_process').exec('tvservice -o ; tvservice -p', 
+                    function(error, stdout, stderr) {
+                play(response, query);
+            });
         });
     },
 
