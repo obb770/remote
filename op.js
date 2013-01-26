@@ -19,8 +19,9 @@ var http = require('http'),
     commands,
     handlers,
     player = null,
-    play,
     stop,
+    play,
+    run,
     doLater = null,
     dummy;
 
@@ -238,33 +239,45 @@ play = function (response, query) {
     respondJSON(response, null);
 };
 
-http.createServer(function (request, response) {
-    var req = require('url').parse(request.url, true);
-    response.url = request.url;
-    response.remoteAddress = request.connection.remoteAddress;
-    doLater = function (delay, callback) {
-        setTimeout(function () {
-            try {
-                callback();
+run = function () {
+    http.createServer(function (request, response) {
+        var req = require('url').parse(request.url, true);
+        response.url = request.url;
+        response.remoteAddress = request.connection.remoteAddress;
+        doLater = function (delay, callback) {
+            setTimeout(function () {
+                try {
+                    callback();
+                }
+                catch (e) {
+                    respond(response, 500, 
+                            'text/plain', util.format(
+                                    'Failed to handle:\n%j\n%s',
+                                    req, e.stack));
+                }
+            }, delay);
+        };
+        doLater(0, function () {
+            if (!handlers.hasOwnProperty(req.pathname)) {
+                sendFile(response, req.pathname);
+                return;
             }
-            catch (e) {
-                respond(response, 500, 
-                        'text/plain', util.format('Failed to handle:\n%j\n%s',
-                                req, e.stack));
-            }
-        }, delay);
+            handlers[req.pathname](response, req.query);
+        });
+    }).listen(port);
+    log('Server running at port %d', port);
+}
 
-    };
-    doLater(0, function () {
-        if (!handlers.hasOwnProperty(req.pathname)) {
-            sendFile(response, req.pathname);
-            return;
-        }
-        handlers[req.pathname](response, req.query);
-    });
-}).listen(port);
+http.get({port: port, path: '/exit'}, function (res) {
+    setTimeout(function () {
+        log('Stopped...');
+        run();
+    }, 1000);
+}).on('error', function (e) {
+    log(e);
+    run();
+});
 
-log('Server running at port %d', port);
 process.stdin.resume()
 process.stdin.on('data', function (data) {
     log('data');
