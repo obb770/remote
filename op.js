@@ -144,7 +144,7 @@ handlers = {
     },
 
     '/exit': function (response, query) {
-        if (response.remoteAddress !== '127.0.0.1') {
+        if (response && response.remoteAddress !== '127.0.0.1') {
             throw new Error("Must be local");
         }
         respond(response, 200, 'text/plain', 'Bye, bye...');
