@@ -14,40 +14,30 @@ body {
     font-family: sans-serif;
 }
 #startup {
-    margin-top: 80px;
+    margin-top: 80px auto;
     color: rgba(128, 128, 128, 0.5);
 }
 #ui {
     margin-top: 40px;
 }
 #list {
-    width: 99%;
+    width: 100%;
     -webkit-appearance: none;
     font-size: inherit;
+}
+table {
+    width: 100%;
 }
 #selected {
     margin-top: 1em;
     font-size: 80%;
 }
-.buttontable {
-}
-.buttonrow {
-    margin: 1em 0;
-}
 .button {
+    width: 100%;
     padding: 1em 0;
     -webkit-appearance: none;
     -webkit-border-radius: 10px;
     background-color: green;
-}
-.left {
-    width: 31%;
-}
-.middle {
-    width: 32%;
-}
-.right {
-    width: 31%;
 }
 #log {
     font-family: monospace;
@@ -61,29 +51,47 @@ body {
   <h1>Loading...</h1>
   </div>
   <div id="ui">
-   <div class="buttontable">
-   <div class="buttonrow">
-    <button id="seekminus30" class="button left"><img width="64px"
-      src="/media-seek-backward.svg"></button>
-    <button id="pauseorresume" class="button middle"><img width="64px"
-      src="/media-playback-pause.svg"></button>
-    <button id="seekplus30" class="button right"><img width="64px"
-      src="/media-seek-forward.svg"></button>
-   </div>
-   <div class="buttonrow">
-    <button id="play" class="button left"><img width="64px"
-      src="/media-playback-start.svg"></button>
-    <button id="reload" class="button middle"><img width="64px"
-      src="/view-refresh.svg"></button>
-    <button id="stop" class="button right"><img width="64px"
-      src="/media-playback-stop.svg"></button>
-   </div>
+   <table>
+    <tr>
+     <td>
+      <button id="seekminus30" class="button">
+       <img width="64px" src="/media-seek-backward.svg">
+      </button>
+     </td>
+     <td>
+      <button id="pauseorresume" class="button">
+       <img width="64px" src="/media-playback-pause.svg">
+      </button>
+     </td>
+     <td>
+      <button id="seekplus30" class="button">
+       <img width="64px" src="/media-seek-forward.svg">
+      </button>
+     </td>
+    </tr>
+    <tr>
+     <td>
+      <button id="play" class="button">
+       <img width="64px" src="/media-playback-start.svg">
+      </button>
+     </td>
+     <td>
+      <button id="reload" class="button">
+       <img width="64px" src="/view-refresh.svg">
+      </button>
+     </td>
+     <td>
+      <button id="stop" class="button">
+       <img width="64px" src="/media-playback-stop.svg">
+      </button>
+     </td>
+    </tr>
+   </table>
    <div>
     <select id="list">
     </select>
    </div>
    <div id="selected">
-   </div>
    </div>
    <div id="log">
    </div>
