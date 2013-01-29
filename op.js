@@ -60,7 +60,8 @@ respond = function (response, code, type, body) {
         log('Already responded');
         return;
     }
-    log(response.remoteAddress + ' ' + response.url + ' ' + code + ' ' + type);
+    log(response.request.connection.remoteAddress + ' ' +
+            response.request.url + ' ' + code + ' ' + type);
     if (code != 200) {
         log(body);
     }
@@ -78,12 +79,12 @@ types = {
     'html': 'text/html',
     'svg': 'image/svg+xml',
     'png': 'image/png',
+    'mp4': 'video/mp4',
     '': 'text/plain'
 };
 
 sendFile = function (response, name) {
-    var i,
-        type;
+    var i, type, size, rs, code, match, options, headers;
     if (/\.\.(\/|$)/.test(name) || name[0] !== '/') {
         throw new Error("Bad file");
     }
@@ -110,11 +111,33 @@ sendFile = function (response, name) {
         }
         throw new Error("File not found");
     }
-    fs.readFile(name, function (err, data) {
+    size = fs.statSync(name).size;
+    code = 200;
+    options = undefined;
+    headers = {'Content-type': types[type], 'Content-length': size};
+    if (response.request.headers.hasOwnProperty('range')) {
+        match = /bytes=(\d*)-(\d*)/.exec(response.request.headers.range);
+        code = 206
+        options = {start: 0, end: size - 1};
+        if (match[1]) {
+            options.start = parseInt(match[1]);
+        }
+        if (match[2]) {
+            options.end = parseInt(match[2]);
+        }
+        headers['Content-length'] = options.end - options.start + 1;
+        headers['Content-range'] =
+            'bytes ' + options.start + '-' + options.end + '/' + size;
+    } 
+    rs = fs.createReadStream(name, options);
+    response.writeHead(code, headers);
+    log(response.request.connection.remoteAddress + ' ' +
+            response.request.url + ' ' + code + ' ' +
+            headers['Content-type'] + ' ' + headers['Content-length']);
+    util.pump(rs, response, function (err) {
         if (err) {
             log(err.stack);
         }
-        respond(response, 200, types[type], data);
     });
 };
 
@@ -242,8 +265,7 @@ play = function (response, query) {
 run = function () {
     http.createServer(function (request, response) {
         var req = require('url').parse(request.url, true);
-        response.url = request.url;
-        response.remoteAddress = request.connection.remoteAddress;
+        response.request = request;
         doLater = function (delay, callback) {
             setTimeout(function () {
                 try {
