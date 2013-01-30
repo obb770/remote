@@ -29,8 +29,12 @@ table {
     width: 100%;
 }
 #selected {
+    text-align: center;
     margin-top: 1em;
     font-size: 80%;
+}
+#video {
+    text-align: center;
 }
 .button {
     width: 100%;
@@ -93,6 +97,8 @@ table {
    </div>
    <div id="selected">
    </div>
+   <div id="video">
+   </div>
    <div id="log">
    </div>
   </div>
@@ -148,6 +154,11 @@ qs('#list').addEventListener('change', function (e) {
     var list = qs('#list');
     file = list.options[list.selectedIndex].textContent;
     qs('#selected').innerHTML = file.replace(/\./g, ' ');
+    qs('#video').innerHTML = '';
+    if (/\.mp4$/.test(file)) {
+        qs('#video').innerHTML = '<video width="160" height="120" ' +
+            'src="Media/' + file + '" controls></video>';
+    }
     setTimeout(function () {
         qs('#list').selectedIndex = 0;
         qs('#list').value = list.options[list.selectedIndex].textContent;
