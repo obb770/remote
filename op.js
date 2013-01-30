@@ -167,7 +167,8 @@ handlers = {
     },
 
     '/exit': function (response, query) {
-        if (response && response.remoteAddress !== '127.0.0.1') {
+        if (response && response.request.connection.remoteAddress !==
+                '127.0.0.1') {
             throw new Error("Must be local");
         }
         respond(response, 200, 'text/plain', 'Bye, bye...');
@@ -179,7 +180,7 @@ handlers = {
 
     '/list': function (response, query) {
         var files = [];
-        files.push.apply(files, search(mediaDir, '', function (file) {
+        files.push.apply(files, search(wwwRoot, mediaDir, function (file) {
             return mediaPattern.test(file);
         }));
         respondJSON(response, files);
@@ -235,7 +236,7 @@ play = function (response, query) {
     if (/\.\.(\/|$)/.test(file)) {
         throw new Error("Bad file");
     }
-    file = path.join(mediaDir, file);
+    file = path.join(wwwRoot, file);
     if (!path.existsSync(file) || !fs.statSync(file).isFile()) {
         throw new Error("File not found");
     }

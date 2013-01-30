@@ -153,11 +153,11 @@ populateList(qs('#list'));
 qs('#list').addEventListener('change', function (e) {
     var list = qs('#list');
     file = list.options[list.selectedIndex].textContent;
-    qs('#selected').innerHTML = file.replace(/\./g, ' ');
+    qs('#selected').innerHTML = file.replace(/^.*\//, ' ').replace(/\./g, ' ');
     qs('#video').innerHTML = '';
     if (/\.mp4$/.test(file)) {
         qs('#video').innerHTML = '<video width="160" height="120" ' +
-            'src="Media/' + file + '" controls></video>';
+            'src="' + file + '" controls></video>';
     }
     setTimeout(function () {
         qs('#list').selectedIndex = 0;
