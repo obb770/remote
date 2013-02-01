@@ -84,14 +84,18 @@ types = {
 };
 
 sendFile = function (response, name) {
-    var i, type, size, rs, code, match, options, headers;
+    var stat, i, type, size, rs, code, match, options, headers;
     if (/\.\.(\/|$)/.test(name) || name[0] !== '/') {
         throw new Error("Bad file");
+    }
+    name = path.join(wwwRoot, name.substr(1));
+    stat = path.existsSync(name) && fs.statSync(name);
+    if (stat && stat.isDirectory() && name[name.length - 1] !== '/') {
+        name += '/';
     }
     if (name[name.length - 1] === '/') {
         name += 'index.html';
     }
-    name = name.substr(1);
     i = name.lastIndexOf('.');
     if (i < 0) {
         i = name.lastIndexOf('/');
@@ -100,8 +104,8 @@ sendFile = function (response, name) {
     if (!types.hasOwnProperty(type)) {
         throw new Error("Bad file type");
     }
-    name = path.join(wwwRoot, name);
-    if (!path.existsSync(name) || !fs.statSync(name).isFile()) {
+    stat = path.existsSync(name) && fs.statSync(name);
+    if (!stat || !stat.isFile()) {
         if (type === 'manifest') {
             i = name.lastIndexOf('/');
             respond(response, 200, types[type], util.format(
@@ -111,7 +115,7 @@ sendFile = function (response, name) {
         }
         throw new Error("File not found");
     }
-    size = fs.statSync(name).size;
+    size = stat.size;
     code = 200;
     options = undefined;
     headers = {'Content-type': types[type], 'Content-length': size};
