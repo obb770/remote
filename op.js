@@ -32,8 +32,11 @@ log = function () {
 }
 
 search = function (base, subPath, filter) {
-    var result = [];
-    fs.readdirSync(path.join(base, subPath)).forEach(function (obj) {
+    var result = [],
+        objs = fs.readdirSync(path.join(base, subPath));
+    objs.sort();
+    objs.reverse();
+    objs.forEach(function (obj) {
         var stats,
             files;
         obj = path.join(subPath, obj);
