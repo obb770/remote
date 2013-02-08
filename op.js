@@ -85,7 +85,7 @@ types = {
 
 sendFile = function (response, name) {
     var stat, i, type, size, rs, code, match, options, headers;
-    if (/\.\.(\/|$)/.test(name) || name[0] !== '/') {
+    if (/\/\./.test(name) || name[0] !== '/') {
         throw new Error("Bad file");
     }
     name = path.join(wwwRoot, name.substr(1));
