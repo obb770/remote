@@ -4,7 +4,9 @@ var http = require('http'),
     util = require('util'),
     fs = require('fs'),
     path = require('path'),
-    port = (process.argv.length > 2 && parseInt(process.argv[2])) || 8124,
+    httpPort = (process.argv.length > 2 && parseInt(process.argv[2])) || 8124,
+    httpsPort = (process.argv.length > 2 && parseInt(process.argv[2])) || 8125,
+    pfx = 'p12',
     wwwRoot = 'www',
     mediaDir = 'Media',
     mediaPlayer = process.env['MEDIA_PLAYER'] || null,
@@ -21,6 +23,7 @@ var http = require('http'),
     player = null,
     stop,
     play,
+    serve,
     run,
     doLater = null,
     dummy;
@@ -64,6 +67,7 @@ respond = function (response, code, type, body) {
         return;
     }
     log(response.request.connection.remoteAddress + ' ' +
+            response.request.connection.remotePort + ' ' +
             response.request.url + ' ' + code + ' ' + type);
     if (code != 200) {
         log(body);
@@ -83,6 +87,8 @@ types = {
     'svg': 'image/svg+xml',
     'png': 'image/png',
     'mp4': 'video/mp4',
+    'js': 'text/javascript',
+    'css': 'text/css',
     '': 'text/plain'
 };
 
@@ -270,35 +276,40 @@ play = function (response, query) {
     respondJSON(response, null);
 };
 
-run = function () {
-    http.createServer(function (request, response) {
-        var req = require('url').parse(request.url, true);
-        response.request = request;
-        doLater = function (delay, callback) {
-            setTimeout(function () {
-                try {
-                    callback();
-                }
-                catch (e) {
-                    respond(response, 500, 
-                            'text/plain', util.format(
-                                    'Failed to handle:\n%j\n%s',
-                                    req, e.stack));
-                }
-            }, delay);
-        };
-        doLater(0, function () {
-            if (!handlers.hasOwnProperty(req.pathname)) {
-                sendFile(response, req.pathname);
-                return;
+serve = function (request, response) {
+    var req = require('url').parse(request.url, true);
+    response.request = request;
+    doLater = function (delay, callback) {
+        setTimeout(function () {
+            try {
+                callback();
             }
-            handlers[req.pathname](response, req.query);
-        });
-    }).listen(port);
-    log('Server running at port %d', port);
+            catch (e) {
+                respond(response, 500, 
+                        'text/plain', util.format(
+                                'Failed to handle:\n%j\n%s',
+                                req, e.stack));
+            }
+        }, delay);
+    };
+    doLater(0, function () {
+        if (!handlers.hasOwnProperty(req.pathname)) {
+            sendFile(response, req.pathname);
+            return;
+        }
+        handlers[req.pathname](response, req.query);
+    });
+};
+
+run = function () {
+    http.createServer(serve).listen(httpPort);
+    log('Server running at port %d', httpPort);
+    require('https').createServer(
+            {pfx: fs.readFileSync(pfx)}, serve).listen(httpsPort);
+    log('Secure server running at port %d', httpsPort);
 }
 
-http.get({port: port, path: '/exit'}, function (res) {
+http.get({port: httpPort, path: '/exit'}, function (res) {
     setTimeout(function () {
         log('Stopped...');
         run();
