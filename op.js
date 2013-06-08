@@ -21,11 +21,11 @@ var http = require('http'),
     commands,
     handlers,
     player = null,
+    stopping = {},
     stop,
     play,
     serve,
     run,
-    doLater = null,
     dummy;
 
 log = function () {
@@ -226,22 +226,34 @@ handlers = {
 };
 
 stop = function (thenDo) {
+    var pid;
     if (!player) {
         thenDo();
         return;
     }
+    pid = player.pid
+    if (stopping.hasOwnProperty(pid.toString())) {
+        log('Already stopping ' + pid);
+        return;
+    }
+    stopping[pid.toString()] = true;
     player.on('exit', function () {
-        log('Stopped!');
-        doLater(0, function () {
+        delete stopping[pid.toString()];
+        log('Stopped! ' + pid);
+        try {
             thenDo();
-        });
+        }
+        catch (e) {
+            log(e.stack);
+        }
     });
-    log('Stopping...');
+    log('Stopping... ' + pid);
     player.stdin.write('q');
 };
 
 play = function (response, query) {
-    var file;
+    var file,
+        pid;
     if (!query.hasOwnProperty('file')) {
         throw new Error('Missing file parameter');
     }
@@ -262,6 +274,8 @@ play = function (response, query) {
         player = require('child_process').spawn('omxplayer',
                 ['-o', 'hdmi', file]);
     }
+    pid = player.pid;
+    log('... ' + pid);
     player.stdout.setEncoding('utf-8');
     player.stdout.on('data', function(data) {
         data = data.trim();
@@ -270,14 +284,15 @@ play = function (response, query) {
         }
     });
     player.on('exit', function () {
-        log('Played!');
+        log('Played! ' + pid);
         player = null;
     });
     respondJSON(response, null);
 };
 
 serve = function (request, response) {
-    var req = require('url').parse(request.url, true);
+    var req = require('url').parse(request.url, true),
+        doLater;
     response.request = request;
     doLater = function (delay, callback) {
         setTimeout(function () {
