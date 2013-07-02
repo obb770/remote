@@ -16,6 +16,7 @@ var http = require('http'),
     search,
     respond,
     respondJSON,
+    redirect,
     types,
     sendFile,
     commands,
@@ -57,28 +58,39 @@ search = function (base, subPath, filter) {
     return result;
 };
 
-respond = function (response, code, type, body) {
+respond = function (response, code, type, body, headers) {
     if (!response) {
         log('null response');
         return;
     }
     if (response.responded) {
-        log('Already responded');
+        log('Already responded (now: ' + code + ')');
+        log(body);
         return;
     }
     log(response.request.connection.remoteAddress + ' ' +
             response.request.connection.remotePort + ' ' +
             response.request.url + ' ' + code + ' ' + type);
-    if (code != 200) {
+    if (code != 200 || type === types.manifest) {
         log(body);
     }
+    if (!headers) {
+        headers = {};
+    }
+    headers['Content-type'] = type;
     response.responded = true;
-    response.writeHead(code, {'Content-Type': type});
+    response.writeHead(code, headers);
     response.end(body);
 };
 
-respondJSON = function (response, obj) {
+respondJSON = function (response, loc) {
     respond(response, 200, 'application/json', util.format('%j', obj));
+};
+
+redirect = function (response, loc) {
+    respond(response, 302, 'text/html', util.format(
+            '<html><body>The content is <a href="%s">here</a>.</body></html>',
+            loc), {'Location': loc});
 };
 
 types = {
@@ -92,15 +104,17 @@ types = {
     '': 'text/plain'
 };
 
-sendFile = function (response, name) {
-    var stat, i, type, size, rs, code, match, options, headers;
+sendFile = function (response, pathName) {
+    var name, stat, i, type, size, rs, code, match, options, headers;
+    name = pathName;
     if (/\/\./.test(name) || name[0] !== '/') {
         throw new Error("Bad file");
     }
     name = path.join(wwwRoot, name.substr(1));
     stat = path.existsSync(name) && fs.statSync(name);
     if (stat && stat.isDirectory() && name[name.length - 1] !== '/') {
-        name += '/';
+        redirect(response, pathName + '/');
+        return;
     }
     if (name[name.length - 1] === '/') {
         name += 'index.html';
@@ -293,6 +307,7 @@ play = function (response, query) {
 serve = function (request, response) {
     var req = require('url').parse(request.url, true),
         doLater;
+    response.responded = false;
     response.request = request;
     doLater = function (delay, callback) {
         setTimeout(function () {
@@ -308,6 +323,10 @@ serve = function (request, response) {
         }, delay);
     };
     doLater(0, function () {
+        if (req.pathname === '/favicon.ico') {
+            respond(response, 404, 'text/plain', '');
+            return;
+        }
         if (!handlers.hasOwnProperty(req.pathname)) {
             sendFile(response, req.pathname);
             return;
