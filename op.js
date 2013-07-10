@@ -83,7 +83,7 @@ respond = function (response, code, type, body, headers) {
     response.end(body);
 };
 
-respondJSON = function (response, loc) {
+respondJSON = function (response, obj) {
     respond(response, 200, 'application/json', util.format('%j', obj));
 };
 
