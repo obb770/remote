@@ -110,7 +110,10 @@ sendFile = function (response, pathName) {
     if (/\/\./.test(name) || name[0] !== '/') {
         throw new Error("Bad file");
     }
-    name = path.join(wwwRoot, name.substr(1));
+    if (name !== '/') {
+        name = name.substr(1);
+    }
+    name = path.join(wwwRoot, name);
     stat = path.existsSync(name) && fs.statSync(name);
     if (stat && stat.isDirectory() && name[name.length - 1] !== '/') {
         redirect(response, pathName + '/');
