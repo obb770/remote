@@ -59,34 +59,34 @@ table {
     <tr>
      <td>
       <button id="seekminus30" class="button">
-       <img width="64px" src="/media-seek-backward.svg">
+       <img width="64px" src="media-seek-backward.svg">
       </button>
      </td>
      <td>
       <button id="pauseorresume" class="button">
-       <img width="64px" src="/media-playback-pause.svg">
+       <img width="64px" src="media-playback-pause.svg">
       </button>
      </td>
      <td>
       <button id="seekplus30" class="button">
-       <img width="64px" src="/media-seek-forward.svg">
+       <img width="64px" src="media-seek-forward.svg">
       </button>
      </td>
     </tr>
     <tr>
      <td>
       <button id="play" class="button">
-       <img width="64px" src="/media-playback-start.svg">
+       <img width="64px" src="media-playback-start.svg">
       </button>
      </td>
      <td>
       <button id="reload" class="button">
-       <img width="64px" src="/view-refresh.svg">
+       <img width="64px" src="view-refresh.svg">
       </button>
      </td>
      <td>
       <button id="stop" class="button">
-       <img width="64px" src="/media-playback-stop.svg">
+       <img width="64px" src="media-playback-stop.svg">
       </button>
      </td>
     </tr>
@@ -104,24 +104,21 @@ table {
   </div>
   <script type="text/javascript">
 (function () {
+/*jshint browser:true */
 'use strict';
 var qs = function (q) {return document.querySelector(q);},
-    qsa = function (q) {
-        return Array.prototype.slice.call(document.querySelectorAll(q));
-    },
     log,
     request,
     populateList,
     file = null,
-    buttons,
-    dummy;
+    buttons;
 
-function log(m) {
+log = function (m) {
     qs('#log').innerHTML = '<hr>' + m + qs('#log').innerHTML;
     document.body.scrollTop = document.documentElement.scrollTop = 0;
 };
 
-function request(op, args) {
+request = function (op, args) {
     var xhr = new XMLHttpRequest(),
         url = op,
         key,
@@ -142,7 +139,7 @@ function request(op, args) {
 };
 
 populateList = function (listElement) {
-    var list = request('/list', {});
+    var list = request('list', {});
     listElement.innerHTML =
         '<option>' + 'Click to select media...' + '</option>' + 
         '<option>' + list.join('</option><option>') + '</option>';
@@ -150,7 +147,7 @@ populateList = function (listElement) {
 
 populateList(qs('#list'));
 
-qs('#list').addEventListener('change', function (e) {
+qs('#list').addEventListener('change', function () {
     var list = qs('#list');
     file = list.options[list.selectedIndex].textContent;
     qs('#selected').innerHTML = file.replace(/^.*\//, ' ').replace(/\./g, ' ');
@@ -168,24 +165,23 @@ qs('#list').addEventListener('change', function (e) {
 
 buttons = {
     '#seekminus30': function () {
-        request('/control', {'command': 'seekMinus30'});
+        request('control', {'command': 'seekMinus30'});
     },
     '#pauseorresume': function () {
-        request('/control', {'command': 'pauseOrResume'});
+        request('control', {'command': 'pauseOrResume'});
     },
     '#seekplus30': function () {
-        request('/control', {'command': 'seekPlus30'});
+        request('control', {'command': 'seekPlus30'});
     },
     '#play': function () {
-        var list = qs('#list');
-        request('/play', {'file': file});
+        request('play', {'file': file});
     },
     '#reload': function () {
         qs('#log').innerHTML = '';
         populateList(qs('#list'));
     },
     '#stop': function () {
-        request('/control', {'command': 'exitOMXPlayer'});
+        request('control', {'command': 'exitOMXPlayer'});
     },
 };
 
