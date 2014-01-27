@@ -146,7 +146,7 @@ play = function (response, query) {
         throw new Error("Bad file");
     }
     file = path.join(__dirname, file);
-    if (!path.existsSync(file) || !fs.statSync(file).isFile()) {
+    if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
         throw new Error("File not found");
     }
     log('Playing...');
