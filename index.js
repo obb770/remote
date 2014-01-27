@@ -4,7 +4,6 @@
 var util = require('util'),
     fs = require('fs'),
     path = require('path'),
-    wwwRoot = '.',
     mediaDir = 'Media',
     mediaPlayer = process.env.MEDIA_PLAYER || null,
     mediaPattern = /\.(mp4|avi)$/,
@@ -78,8 +77,7 @@ exports.handlers = {
 
     'list': function (response) {
         var files = [];
-        log(process.cwd());
-        files.push.apply(files, search(wwwRoot, mediaDir, function (file) {
+        files.push.apply(files, search(__dirname, mediaDir, function (file) {
             return mediaPattern.test(file);
         }));
         respondJSON(response, files);
@@ -130,7 +128,7 @@ stop = function (thenDo) {
             thenDo();
         }
         catch (e) {
-            log(e.stack);
+            log('exception: ' + e.stack);
         }
     });
     log('Stopping... ' + pid);
@@ -147,7 +145,7 @@ play = function (response, query) {
     if (/\.\.(\/|$)/.test(file)) {
         throw new Error("Bad file");
     }
-    file = path.join(wwwRoot, file);
+    file = path.join(__dirname, file);
     if (!path.existsSync(file) || !fs.statSync(file).isFile()) {
         throw new Error("File not found");
     }
