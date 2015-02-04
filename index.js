@@ -6,7 +6,7 @@ var util = require('util'),
     path = require('path'),
     mediaDir = 'Media',
     mediaPlayer = process.env.MEDIA_PLAYER || null,
-    mediaPattern = /\.(mp4|avi)$/,
+    mediaPattern = /\.(mp4|avi|mkv)$/,
     log,
     buffer = '',
     search,
@@ -86,8 +86,13 @@ exports.handlers = {
     'play': function (response, query) {
         stop(function () {
             require('child_process').exec('tvservice -o ; tvservice -p', 
-                    function(/*error, stdout, stderr*/) {
-                play(response, query);
+                    function (/*error, stdout, stderr*/) {
+                try {
+                    play(response, query);
+                }
+                catch (e) {
+                    log(e.stack);
+                }
             });
         });
     },
@@ -167,10 +172,18 @@ play = function (response, query) {
             log('player: ' + data);
         }
     });
+    player.stdout.on('error', function (e) {
+        log(e.stack);
+    });
+    player.stderr.on('error', function (e) {
+        log(e.stack);
+    });
+    player.stdin.on('error', function (e) {
+        log(e.stack);
+    });
     player.on('exit', function () {
         log('Played! ' + pid);
         player = null;
     });
     respondJSON(response, null);
 };
-
