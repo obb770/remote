@@ -32,7 +32,13 @@ search = function (base, subPath, filter) {
         var stats,
             files;
         obj = path.join(subPath, obj);
-        stats = fs.statSync(path.join(base, obj));
+        try {
+            stats = fs.statSync(path.join(base, obj));
+        }
+        catch (e) {
+            log('exception: ' + e.stack);
+            return;
+        }
         if (stats.isFile()) {
             if (filter(obj)) {
                 result.push(obj);
