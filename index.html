@@ -152,7 +152,7 @@ qs('#list').addEventListener('change', function () {
     file = list.options[list.selectedIndex].textContent;
     qs('#selected').innerHTML = file.replace(/^.*\//, ' ').replace(/\./g, ' ');
     qs('#video').innerHTML = '';
-    if (/\.mp4$/.test(file)) {
+    if (/\.(mp4|m4v)$/.test(file)) {
         qs('#video').innerHTML = '<video width="160" height="120" ' +
             'src="' + file + '" controls></video>';
     }
