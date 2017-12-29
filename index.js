@@ -11,6 +11,7 @@ var util = require('util'),
     buffer = '',
     search,
     respondJSON,
+    has,
     commands,
     player = null,
     stopping = {},
@@ -54,6 +55,11 @@ search = function (base, subPath, filter) {
 
 respondJSON = function (response, obj) {
     response.start(200, 'application/json', {}, util.format('%j', obj));
+};
+
+has = function (o, p) {
+    return o !== null && typeof(o) === 'object' &&
+        Object.hasOwnProperty.call(o, p);
 };
 
 commands = {
@@ -108,11 +114,11 @@ exports.handlers = {
         if (!player) {
             throw new Error('Player is not running');
         }
-        if (!query.hasOwnProperty('command')) {
+        if (!has(query, 'command')) {
             throw new Error('Missing command parameter');
         }
         command = query.command;
-        if (!commands.hasOwnProperty(command)) {
+        if (!has(commands, command)) {
             throw new Error('Bad command parameter');
         }
         player.stdin.write(commands[query.command]);
@@ -127,7 +133,7 @@ stop = function (thenDo) {
         return;
     }
     pid = player.pid;
-    if (stopping.hasOwnProperty(pid.toString())) {
+    if (has(stopping, pid.toString())) {
         log('Already stopping ' + pid);
         return;
     }
@@ -149,7 +155,7 @@ stop = function (thenDo) {
 play = function (response, query) {
     var file,
         pid;
-    if (!query.hasOwnProperty('file')) {
+    if (!has(query, 'file')) {
         throw new Error('Missing file parameter');
     }
     file = query.file;
