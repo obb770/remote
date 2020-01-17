@@ -111,7 +111,9 @@ var qs = function (q) {return document.querySelector(q);},
     request,
     populateList,
     file = null,
-    buttons;
+    buttons,
+    lastDown,
+    timeDown;
 
 log = function (m) {
     qs('#log').innerHTML = '<hr>' + m + qs('#log').innerHTML;
@@ -179,35 +181,61 @@ buttons = {
     '#reload': function () {
         qs('#log').innerHTML = '';
         populateList(qs('#list'));
+        qs('#selected').innerHTML = '';
+        qs('#video').innerHTML = '';
     },
     '#stop': function () {
         request('control', {'command': 'exitOMXPlayer'});
     },
+    '#selected': function () {
+        request('archive', {'file': file});
+        qs('#selected').innerHTML = '';
+        qs('#video').innerHTML = '';
+        file = null;
+    }
 };
 
 Object.keys(buttons).forEach(function (id) {
     var down,
-        up;
+        up,
+        listen;
     down = function () {
-        this.style['background-color'] = 'darkgreen';
+        lastDown = id;
+        timeDown = new Date();
+        if (id !== '#selected') {
+            qs(id).style['background-color'] = 'darkgreen';
+        }
     };
     up = function () {
-        this.style['background-color'] = 'green';
-        buttons[id]();
+        var same = lastDown === id,
+            duration = new Date() - timeDown,
+            act = duration < 1000;
+        if (same) {
+            if (id === '#selected') {
+                act = !act;
+            }
+            if (act) {
+                buttons[id]();
+            }
+        }
+        if (lastDown !== '#selected') {
+            qs(lastDown).style['background-color'] = 'green';
+        }
     };
-    qs(id).addEventListener('mousedown', down);
-    qs(id).addEventListener('mouseup', up);
-    qs(id).addEventListener('touchstart', function (e) {
-        e.preventDefault();
-        down.call(this, e.changedTouches[0]);
-    });
-    qs(id).addEventListener('touchmove', function (e) {
-        e.preventDefault();
-    });
-    qs(id).addEventListener('touchend', function (e) {
-        e.preventDefault();
-        up.call(this, e.changedTouches[0]);
-    });
+    listen = function (ev, cb) {
+        qs(id).addEventListener(ev, function (e) {
+            e.preventDefault();
+            if (cb) {
+                cb();
+            }
+        });
+    };
+    listen('mousedown', down);
+    listen('mousemove');
+    listen('mouseup', up);
+    listen('touchstart', down);
+    listen('touchmove');
+    listen('touchend', up);
 });
 
 qs('#ui').style.visibility = 'hidden';

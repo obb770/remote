@@ -6,13 +6,16 @@ var util = require('util'),
     path = require('path'),
     mediaDir = 'Media',
     mediaPlayer = process.env.MEDIA_PLAYER || null,
+    mediaArchiver = process.env.MEDIA_ARCHIVER || null,
     mediaPattern = /\.(mp4|avi|mkv|m4v)$/,
     ignoreDirPattern = process.env.IGNORE_DIR || null,
     log,
     buffer = '',
     search,
     respondJSON,
+    error,
     has,
+    getFile,
     commands,
     player = null,
     stopping = {},
@@ -64,10 +67,30 @@ respondJSON = function (response, obj) {
     response.start(200, 'application/json', {}, util.format('%j', obj));
 };
 
+error = function (response, message) {
+    response.start(400, 'text/plain', {}, message);
+};
+
 has = function (o, p) {
     return o !== null && typeof(o) === 'object' &&
         Object.hasOwnProperty.call(o, p);
 };
+
+getFile = function (response, query) {
+    var file;
+    if (!has(query, 'file')) {
+        return error(respone, 'Missing file parameter');
+    }
+    file = query.file;
+    if (!file || /\.\.(\/|$)/.test(file)) {
+        return error(response, "Bad file");
+    }
+    file = path.join(__dirname, file);
+    if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
+        return error(response, "File not found");
+    }
+    return file;
+}
 
 commands = {
     'increaseSpeed': '1',
@@ -103,30 +126,58 @@ exports.handlers = {
     },
 
     'play': function (response, query) {
+        var file = getFile(response, query);
+        if (!file) {
+            return;
+        }
         stop(function () {
             require('child_process').exec('tvservice -o ; tvservice -p', 
                     function (/*error, stdout, stderr*/) {
                 try {
-                    play(response, query);
+                    play(file);
                 }
                 catch (e) {
                     log(e.stack);
                 }
             });
         });
+        respondJSON(response, null);
+    },
+
+    'archive': function (response, query) {
+        var file;
+        if (player) {
+            return error(response, 'Player is running');
+        }
+        if (!mediaArchiver) {
+            return error(response, 'Not supported');
+        }
+        file = getFile(response, query);
+        if (!file) {
+            return;
+        }
+        require('child_process').execFile(mediaArchiver, [file],
+                function (e, stdout, stderr) {
+            if (e) {
+                log(e);
+            }
+            log(stdout);
+            log(stderr);
+        });
+        respondJSON(response, null);
     },
 
     'control': function (response, query) {
         var command;
         if (!player) {
-            throw new Error('Player is not running');
+            return error(response, 'Player is not running');
         }
         if (!has(query, 'command')) {
-            throw new Error('Missing command parameter');
+            return error(response, 'Missing command parameter');
         }
         command = query.command;
         if (!has(commands, command)) {
-            throw new Error('Bad command parameter');
+            return error(response, 'Bad command parameter');
         }
         player.stdin.write(commands[query.command]);
         respondJSON(response, null);
@@ -159,20 +210,8 @@ stop = function (thenDo) {
     player.stdin.write('q');
 };
 
-play = function (response, query) {
-    var file,
-        pid;
-    if (!has(query, 'file')) {
-        throw new Error('Missing file parameter');
-    }
-    file = query.file;
-    if (/\.\.(\/|$)/.test(file)) {
-        throw new Error("Bad file");
-    }
-    file = path.join(__dirname, file);
-    if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
-        throw new Error("File not found");
-    }
+play = function (file) {
+    var pid;
     log('Playing...');
     if (mediaPlayer) {
         log('Using: %s', mediaPlayer);
@@ -204,5 +243,4 @@ play = function (response, query) {
         log('Played! ' + pid);
         player = null;
     });
-    respondJSON(response, null);
 };
