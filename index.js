@@ -7,6 +7,7 @@ var util = require('util'),
     mediaDir = 'Media',
     mediaPlayer = process.env.MEDIA_PLAYER || null,
     mediaPattern = /\.(mp4|avi|mkv|m4v)$/,
+    ignoreDirPattern = process.env.IGNORE_DIR || null,
     log,
     buffer = '',
     search,
@@ -27,10 +28,13 @@ log = function () {
 search = function (base, subPath, filter) {
     var result = [],
         objs = fs.readdirSync(path.join(base, subPath));
-    objs.sort();
+    objs.sort(function (a, b) {
+        return a.localeCompare(b, 'en', {'sensitivity': 'base'});
+    });
     objs.reverse();
     objs.forEach(function (obj) {
         var stats,
+            dir,
             files;
         obj = path.join(subPath, obj);
         try {
@@ -46,8 +50,11 @@ search = function (base, subPath, filter) {
             }
         }
         else if (stats.isDirectory()) {
-            files = search(base, obj, filter);
-            result.push.apply(result, files);
+            dir = path.basename(obj);
+            if (!ignoreDirPattern || !obj.match(ignoreDirPattern)) {
+                files = search(base, obj, filter);
+                result.push.apply(result, files);
+            }
         }
     });
     return result;
