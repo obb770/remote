@@ -112,8 +112,7 @@ var qs = function (q) {return document.querySelector(q);},
     populateList,
     file = null,
     buttons,
-    lastDown,
-    timeDown;
+    lastDown;
 
 log = function (m) {
     qs('#log').innerHTML = '<hr>' + m + qs('#log').innerHTML;
@@ -203,25 +202,17 @@ Object.keys(buttons).forEach(function (id) {
         listen;
     down = function () {
         lastDown = id;
-        timeDown = new Date();
         if (id !== '#selected') {
             qs(id).style['background-color'] = 'darkgreen';
         }
     };
     up = function () {
-        var same = lastDown === id,
-            duration = new Date() - timeDown,
-            act = duration < 1000;
-        if (same) {
-            if (id === '#selected') {
-                act = !act;
-            }
-            if (act) {
-                buttons[id]();
-            }
-        }
+        var same = lastDown === id;
         if (lastDown !== '#selected') {
             qs(lastDown).style['background-color'] = 'green';
+        }
+        if (same) {
+            buttons[id]();
         }
     };
     listen = function (ev, cb) {
