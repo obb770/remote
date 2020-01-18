@@ -183,15 +183,17 @@ buttons = {
         populateList(qs('#list'));
         qs('#selected').innerHTML = '';
         qs('#video').innerHTML = '';
+        file = null;
     },
     '#stop': function () {
         request('control', {'command': 'exitOMXPlayer'});
     },
     '#selected': function () {
+        if (!window.confirm('Do you want to archive the title?')) {
+            return;
+        }
         request('archive', {'file': file});
-        qs('#selected').innerHTML = '';
-        qs('#video').innerHTML = '';
-        file = null;
+        buttons['#reload']();
     }
 };
 
