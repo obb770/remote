@@ -20,6 +20,14 @@ body {
 #ui {
     margin-top: 40px;
 }
+#playing {
+    text-align: center;
+    margin-top: 1em;
+    font-size: 80%;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    white-space: nowrap;
+}
 #list {
     width: 100%;
     -webkit-appearance: none;
@@ -35,6 +43,8 @@ table {
 }
 #video {
     text-align: center;
+    height: 108px;
+    padding: 20px;
 }
 .button {
     width: 100%;
@@ -91,13 +101,15 @@ table {
      </td>
     </tr>
    </table>
+   <div id="playing" class="title">
+   </div>
    <div>
     <select id="list">
     </select>
    </div>
-   <div id="selected">
-   </div>
    <div id="video">
+   </div>
+   <div id="selected" class="title">
    </div>
    <div id="log">
    </div>
@@ -107,10 +119,19 @@ table {
 /*jshint browser:true */
 'use strict';
 var qs = function (q) {return document.querySelector(q);},
+    EMPTY_PLAYING = '<p>&' + 'nbsp;</p>',
+    NORMAL = 'green',
+    DOWN = 'darkgreen',
+    PLAYING = 'blue',
     log,
     request,
     populateList,
-    file = null,
+    setBG,
+    update,
+    checkState,
+    control,
+    state = {},
+    file = '',
     buttons,
     lastDown;
 
@@ -119,7 +140,7 @@ log = function (m) {
     document.body.scrollTop = document.documentElement.scrollTop = 0;
 };
 
-request = function (op, args) {
+request = function (op, args, cb, timeout) {
     var xhr = new XMLHttpRequest(),
         url = op,
         key,
@@ -130,69 +151,111 @@ request = function (op, args) {
         }
     }
     url = url + '?' + params.join('&');
-    xhr.open('GET', url, false);
+    xhr.open('GET', url);
+    xhr.addEventListener('load', function () {
+        if (xhr.status != 200) {
+            log('xhr status: ' +  xhr.status + ': ' + xhr.responseText);
+            if (cb) cb('status: ' + xhr.status, null);
+            return;
+        }
+        if (cb) cb(undefined, JSON.parse(xhr.responseText));
+    });
+    if (timeout) {
+        xhr.timeout = timeout;
+        xhr.addEventListener('timeout', function (e) {
+            if (cb) cb(undefined, null);
+        });
+    }
+    xhr.addEventListener('error', function (e) {
+        log('xhr error');
+        if (cb) cb('xhr error', null);
+    });
     xhr.send();
-    if (xhr.status != 200) {
-        log(xhr.responseText);
-        return null;
-    }
-    return JSON.parse(xhr.responseText);
 };
 
-populateList = function (listElement) {
-    var list = request('list', {});
-    listElement.innerHTML =
-        '<option>' + 'Click to select media...' + '</option>' + 
-        '<option>' + list.join('</option><option>') + '</option>';
+populateList = function (delay) {
+    request('list', {}, function (err, list) {
+        if (err) {
+            if (delay) {
+                setTimeout(populateList, delay,
+                    delay < 4000 ? delay * 2 : delay);
+            }
+            return;
+        }
+        qs('#list').innerHTML =
+            '<option>' + 'Click to select media...' + '</option>' +
+            '<option>' + list.join('</option><option>') + '</option>';
+        qs('#selected').innerHTML = '';
+        qs('#video').innerHTML = '';
+        file = '';
+    });
 };
 
-populateList(qs('#list'));
+setBG = function (id, color) {
+    qs(id).style['background-color'] = color;
+};
 
-qs('#list').addEventListener('change', function () {
-    var list = qs('#list');
-    file = list.options[list.selectedIndex].textContent;
-    qs('#selected').innerHTML = file.replace(/^.*\//, ' ').replace(/\./g, ' ');
-    qs('#video').innerHTML = '';
-    if (/\.(mp4|m4v)$/.test(file)) {
-        qs('#video').innerHTML = '<video width="160" height="120" ' +
-            'src="' + file + '" controls></video>';
+update = function (stateFile, ctx) {
+    if (stateFile) {
+        stateFile = state.file.replace(/^.*\//, ' ').replace(/\./g, ' ');
     }
-    setTimeout(function () {
-        qs('#list').selectedIndex = 0;
-        qs('#list').value = list.options[list.selectedIndex].textContent;
-        document.body.scrollTop = document.documentElement.scrollTop = 0;
-    }, 0);
-});
+    setBG('#play', stateFile ? PLAYING : NORMAL);
+    qs('#playing').innerHTML = stateFile ? '<p>' + stateFile + '</p>' :
+        EMPTY_PLAYING;
+};
+
+control = function (command, cb) {
+    if (state.file) {
+        request('control', {'command': command}, cb);
+    }
+};
 
 buttons = {
     '#seekminus30': function () {
-        request('control', {'command': 'seekMinus30'});
+        control('seekMinus30');
     },
     '#pauseorresume': function () {
-        request('control', {'command': 'pauseOrResume'});
+        control('pauseOrResume');
     },
     '#seekplus30': function () {
-        request('control', {'command': 'seekPlus30'});
+        control('seekPlus30');
     },
     '#play': function () {
-        request('play', {'file': file});
+        request('play', {'file': file}, function (err, res) {
+            if (err) {
+                return;
+            }
+            update(file, 'play');
+        });
     },
     '#reload': function () {
         qs('#log').innerHTML = '';
-        populateList(qs('#list'));
-        qs('#selected').innerHTML = '';
-        qs('#video').innerHTML = '';
-        file = null;
+        populateList();
     },
     '#stop': function () {
-        request('control', {'command': 'exitOMXPlayer'});
+        control('exitOMXPlayer', function (err, res) {
+            if (err) {
+                return;
+            }
+            update('', 'stop');
+        });
     },
     '#selected': function () {
         if (!window.confirm('Do you want to archive the title?')) {
             return;
         }
-        request('archive', {'file': file});
-        buttons['#reload']();
+        request('archive', {'file': file}, function (err, res) {
+            if (err) {
+                return;
+            }
+            buttons['#reload']();
+        });
+    },
+    '#video': function () {
+        if (qs('#video').innerHTML.indexOf('<video') < 0) {
+            qs('#video').innerHTML = '<video width="192" height="108" ' +
+                'src="' + file + '" controls></video>';
+        }
     }
 };
 
@@ -202,14 +265,14 @@ Object.keys(buttons).forEach(function (id) {
         listen;
     down = function () {
         lastDown = id;
-        if (id !== '#selected') {
-            qs(id).style['background-color'] = 'darkgreen';
+        if (id !== '#selected' && id !== '#video') {
+            setBG(id, DOWN);
         }
     };
     up = function () {
         var same = lastDown === id;
-        if (lastDown !== '#selected') {
-            qs(lastDown).style['background-color'] = 'green';
+        if (lastDown !== '#selected' && lastDown !== '#video') {
+            setBG(lastDown, NORMAL);
         }
         if (same) {
             buttons[id]();
@@ -231,10 +294,45 @@ Object.keys(buttons).forEach(function (id) {
     listen('touchend', up);
 });
 
+qs('#list').addEventListener('change', function () {
+    var title = qs('#list').options[qs('#list').selectedIndex].textContent;
+    file = title;
+    qs('#selected').innerHTML = file.replace(/^.*\//, ' ').replace(/\./g, ' ');
+    qs('#video').innerHTML = '';
+    if (/\.(mp4|m4v)$/.test(file)) {
+        qs('#video').innerHTML = '<p>Click to play in browser</p>';
+    }
+    setTimeout(function () {
+        qs('#list').selectedIndex = 0;
+        qs('#list').value = qs('#list').options[0].textContent;
+        document.body.scrollTop = document.documentElement.scrollTop = 0;
+    }, 0);
+});
+
+checkState = function (delay) {
+    if (!delay) {
+        delay = 500;
+    }
+    request('state', state, function (err, st) {
+        if (err) {
+            setTimeout(checkState, delay, delay < 16000 ? delay * 2 : delay);
+            return;
+        }
+        if (st !== null) {
+            state = st;
+            update(st.file, 'state');
+        }
+        setTimeout(checkState, delay);
+    }, 15000);
+};
+
 qs('#ui').style.visibility = 'hidden';
-window.addEventListener('load', function() {
+window.addEventListener('load', function () {
+    qs('#playing').innerHTML = EMPTY_PLAYING;
     qs('#startup').style.display = 'none';
     qs('#ui').style.visibility = 'visible';
+    checkState();
+    populateList(250);
 });
 
 }());

@@ -18,7 +18,10 @@ var util = require('util'),
     getFile,
     commands,
     player = null,
+    state = {version: 0, file: ''},
+    stateResponder = null,
     stopping = {},
+    stateUpdate,
     stop,
     play;
 
@@ -125,13 +128,25 @@ exports.handlers = {
         respondJSON(response, files);
     },
 
+    'state': function (response, query) {
+        stateResponder = function () {
+            stateResponder = null;
+            respondJSON(response, state);
+        }
+        if (String(state.version) !== query.version) {
+            stateResponder();
+        }
+    },
+
     'play': function (response, query) {
         var file = getFile(response, query);
         if (!file) {
             return;
         }
+        state.file = query.file;
+        stateUpdate();
         stop(function () {
-            require('child_process').exec('tvservice -o ; tvservice -p', 
+            require('child_process').exec('tvservice -o ; tvservice -p',
                     function (/*error, stdout, stderr*/) {
                 try {
                     play(file);
@@ -179,8 +194,23 @@ exports.handlers = {
         if (!has(commands, command)) {
             return error(response, 'Bad command parameter');
         }
+        if (query.command === 'exitOMXPlayer') {
+            state.file = '';
+            stateUpdate();
+        }
         player.stdin.write(commands[query.command]);
         respondJSON(response, null);
+    }
+};
+
+stateUpdate = function () {
+    state.version++;
+    log('state update: %j', state);
+    if (stateResponder) {
+        stateResponder();
+    }
+    else {
+        log('no responder: state %j', state);
     }
 };
 
